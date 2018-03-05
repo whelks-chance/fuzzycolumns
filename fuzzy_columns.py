@@ -18,6 +18,19 @@ class Bucket:
         self.upper = upper
         self.matches = []
 
+    def __getitem__(self, item):
+        return self.__dict__()
+
+    def __dict__(self):
+        return {
+            'upper': self.upper,
+            'lower': self.lower,
+            'matches': self.matches_detailed()
+        }
+
+    def __repr__(self):
+        return str(self.__dict__())
+
     def record(self, wb1_cell, wb2_cell, ratio):
         self.matches.append(
             {
@@ -27,7 +40,7 @@ class Bucket:
             }
         )
 
-    def print_matches(self, detail=0):
+    def matches_detailed(self, detail=0):
         all_data = []
         for m in self.matches:
             all_data.append({
@@ -50,7 +63,7 @@ class Bucket:
                 }
             })
 
-        return pprint.pformat(all_data)
+        return all_data
 
 
 class FuzzyReport:
@@ -69,6 +82,10 @@ class FuzzyReport:
             previous_level = l
         self.buckets.append(Bucket(previous_level, 100))
 
+    def __getitem__(self, item):
+        print('*', item, '*')
+        return self.__dict__()
+
     def number_of_buckets(self):
         return len(self.buckets)
 
@@ -86,6 +103,12 @@ class FuzzyReport:
         bucket = self.get_bucket_by_ratio(ratio)
         bucket.record(wb1_cell, wb2_cell, ratio)
 
+    def __repr__(self):
+        return pprint.pformat(self.buckets)
+
+    def __dict__(self):
+        return self.buckets
+
     def print_buckets(self):
         for idx, b in enumerate(self.buckets):
             self.print_bucket(idx)
@@ -95,11 +118,18 @@ class FuzzyReport:
             bucket_idx = len(self.buckets) -1
         b = self.buckets[bucket_idx]
         assert isinstance(b, Bucket)
-        print('{} : {} : {}'.format(b.lower, b.upper, b.print_matches(detail=detail)))
+        print('{} : {} : {}'.format(b.lower, b.upper, b.matches_detailed(detail=detail)))
 
     def print_distribution(self):
         for b in self.buckets:
             print('{} {} {}'.format(b.lower, b.upper, len(b.matches)))
+
+    def best_matches(self):
+        for i in reversed(range(0, len(self.buckets) - 1)):
+            # print(i)
+            # print(self.buckets[i])
+            if len(self.buckets[i]['matches']):
+                return self.buckets[i]
 
 
 class FuzzyColumns:
@@ -130,7 +160,6 @@ class FuzzyColumns:
         report = FuzzyReport(levels=levels)
 
         for sheet_name in wb1.sheetnames:
-            print(sheet_name)
             sheet = wb1[sheet_name]
 
             # print('WB {} Sheet {}'.format(wb1.code_name, sheet_name))
